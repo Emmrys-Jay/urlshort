@@ -1,7 +1,10 @@
 package urlshort
 
 import (
+	"fmt"
 	"net/http"
+
+	yaml "gopkg.in/yaml.v2"
 )
 
 // MapHandler will return an http.HandlerFunc (which also
@@ -11,8 +14,15 @@ import (
 // If the path is not provided in the map, then the fallback
 // http.Handler will be called instead.
 func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.HandlerFunc {
-	//	TODO: Implement this...
-	return nil
+	return func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		newUrl, ok := pathsToUrls[path]
+		if !ok {
+			fallback.ServeHTTP(w, r)
+			return
+		}
+		http.Redirect(w, r, newUrl, http.StatusFound)
+	}
 }
 
 // YAMLHandler will parse the provided YAML and then return
@@ -23,8 +33,8 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 //
 // YAML is expected to be in the format:
 //
-//     - path: /some-path
-//       url: https://www.some-url.com/demo
+//   - path: /some-path
+//     url: https://www.some-url.com/demo
 //
 // The only errors that can be returned all related to having
 // invalid YAML data.
@@ -32,6 +42,23 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 // See MapHandler to create a similar http.HandlerFunc via
 // a mapping of paths to urls.
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
-	// TODO: Implement this...
-	return nil, nil
+	var pathToUrls []PathToUrl
+	err := yaml.Unmarshal(yml, &pathToUrls)
+	if err != nil {
+		fmt.Println(err)
+		return nil, err
+	}
+
+	var m = make(map[string]string)
+	for _, v := range pathToUrls {
+		m[v.Path] = v.Url
+	}
+
+	return MapHandler(m, fallback), nil
+
+}
+
+type PathToUrl struct {
+	Path string `yaml:"path"`
+	Url  string `yaml:"url"`
 }

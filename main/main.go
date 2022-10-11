@@ -2,9 +2,11 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 
-	"github.com/gophercises/urlshort"
+	"github.com/Emmrys-Jay/urlshort"
 )
 
 func main() {
@@ -19,13 +21,17 @@ func main() {
 
 	// Build the YAMLHandler using the mapHandler as the
 	// fallback
-	yaml := `
-- path: /urlshort
-  url: https://github.com/gophercises/urlshort
-- path: /urlshort-final
-  url: https://github.com/gophercises/urlshort/tree/solution
-`
-	yamlHandler, err := urlshort.YAMLHandler([]byte(yaml), mapHandler)
+	f, err := os.Open("main/paths.yml")
+	if err != nil {
+		panic(err)
+	}
+
+	yaml, err := io.ReadAll(f)
+	if err != nil {
+		panic(err)
+	}
+
+	yamlHandler, err := urlshort.YAMLHandler(yaml, mapHandler)
 	if err != nil {
 		panic(err)
 	}
